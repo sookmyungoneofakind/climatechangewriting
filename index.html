@@ -67,12 +67,16 @@
             <h3 class="font-bold text-gray-800 mb-3">데이터 소스 선택</h3>
             <div class="flex flex-wrap gap-4">
                 <label class="flex items-center">
-                    <input type="radio" name="data-source" value="sic" checked class="mr-2">
-                    <span>NSIDC 해빙 농도 (권장)</span>
+                    <input type="radio" name="data-source" value="modis-sea-ice" checked class="mr-2">
+                    <span>MODIS Terra 해빙 분류 (권장)</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="radio" name="data-source" value="modis-aqua-sea-ice" class="mr-2">
+                    <span>MODIS Aqua 해빙 분류</span>
                 </label>
                 <label class="flex items-center">
                     <input type="radio" name="data-source" value="modis-terra" class="mr-2">
-                    <span>MODIS Terra 북극 이미지</span>
+                    <span>MODIS Terra True Color</span>
                 </label>
                 <label class="flex items-center">
                     <input type="radio" name="data-source" value="viirs" class="mr-2">
@@ -154,25 +158,35 @@
     <script>
         // 사용 가능한 데이터 소스와 레이어 정의
         const DATA_SOURCES = {
-            'sic': {
-                name: 'NSIDC 해빙 농도',
+            'modis-sea-ice': {
+                name: 'MODIS Terra 해빙 분류',
                 baseUrl: 'https://gibs.earthdata.nasa.gov/wms/epsg3413/best/wms.cgi',
-                layer: 'NSIDC_Sea_Ice_Concentration_12km',
+                layer: 'MODIS_Terra_Sea_Ice',
                 dateFormat: 'YYYY-09-15',
-                legendTitle: '해빙 농도 (%)',
-                legendGradient: 'from-blue-800 via-yellow-300 to-red-600',
-                legendStart: '얼음 없음 (0%)',
-                legendEnd: '얼음 100%'
+                legendTitle: '해빙 분류',
+                legendGradient: 'from-pink-600 via-blue-400 to-green-600',
+                legendStart: '해빙 (분홍)',
+                legendEnd: '육지 (녹색)'
+            },
+            'modis-aqua-sea-ice': {
+                name: 'MODIS Aqua 해빙 분류',
+                baseUrl: 'https://gibs.earthdata.nasa.gov/wms/epsg3413/best/wms.cgi',
+                layer: 'MODIS_Aqua_Sea_Ice',
+                dateFormat: 'YYYY-09-15',
+                legendTitle: '해빙 분류 (Aqua)',
+                legendGradient: 'from-pink-600 via-blue-400 to-green-600',
+                legendStart: '해빙 (분홍)',
+                legendEnd: '육지 (녹색)'
             },
             'modis-terra': {
-                name: 'MODIS Terra',
+                name: 'MODIS Terra True Color',
                 baseUrl: 'https://gibs.earthdata.nasa.gov/wms/epsg3413/best/wms.cgi',
                 layer: 'MODIS_Terra_CorrectedReflectance_TrueColor',
                 dateFormat: 'YYYY-09-15',
                 legendTitle: 'True Color 이미지',
-                legendGradient: 'from-green-800 via-yellow-300 to-brown-600',
-                legendStart: '물/얼음',
-                legendEnd: '육지/구름'
+                legendGradient: 'from-blue-800 via-white to-brown-600',
+                legendStart: '바다/얼음',
+                legendEnd: '육지'
             },
             'viirs': {
                 name: 'VIIRS True Color',
@@ -180,14 +194,14 @@
                 layer: 'VIIRS_SNPP_CorrectedReflectance_TrueColor',
                 dateFormat: 'YYYY-09-15',
                 legendTitle: 'VIIRS True Color',
-                legendGradient: 'from-blue-800 via-green-300 to-brown-600',
-                legendStart: '바다',
+                legendGradient: 'from-blue-800 via-white to-brown-600',
+                legendStart: '바다/얼음',
                 legendEnd: '육지'
             }
         };
 
         // 현재 사용 중인 데이터 소스
-        let currentDataSource = 'sic';
+        let currentDataSource = 'modis-sea-ice';
         
         const mostRecentGuaranteedYear = new Date().getFullYear() - 1;
         
