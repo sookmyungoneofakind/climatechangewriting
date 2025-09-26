@@ -84,7 +84,7 @@
                     <label for="layer-selector" class="mr-2 font-semibold text-gray-700">데이터 종류</label>
                     <select id="layer-selector" class="rounded border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
                         <option value="MODIS_Terra_CorrectedReflectance_TrueColor">위성 사진 (True Color)</option>
-                        <option value="AMSR2_Sea_Ice_Concentration_12km">해빙 농도</option>
+                        <option value="AMSR2_Sea_Ice_Concentration_12km" selected>해빙 농도</option>
                     </select>
                 </div>
                 <div class="flex items-center">
@@ -122,9 +122,11 @@
     </div>
 
     <script>
+        const currentYear = new Date().getFullYear();
         const LAYERS = {
           'MODIS_Terra_CorrectedReflectance_TrueColor': { name: '위성 사진 (True Color)', min: 2003, max: 2023 },
-          'AMSR2_Sea_Ice_Concentration_12km': { name: '해빙 농도', min: 2012, max: 2024 }
+          // [수정] 해빙 데이터의 최대 연도를 현재 연도로 동적 설정
+          'AMSR2_Sea_Ice_Concentration_12km': { name: '해빙 농도', min: 2012, max: currentYear }
         };
         const TARGET_DATE = '09-15'; 
         const BASE_URL = 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi';
@@ -204,8 +206,10 @@
             sliders.forEach((slider, index) => {
                 slider.min = selectedLayer.min;
                 slider.max = selectedLayer.max;
-                // 현재 값이 범위를 벗어나면 조정
-                slider.value = Math.max(selectedLayer.min, Math.min(selectedLayer.max, slider.value));
+                if (slider.value < slider.min || slider.value > slider.max) {
+                    // [수정] 범위를 벗어날 경우, 안전한 최신 연도로 값 조정
+                    slider.value = Math.min(selectedLayer.max, 2023);
+                }
                 labels[index].textContent = slider.value;
             });
         }
@@ -241,7 +245,6 @@
             yearSelector2.classList.toggle('hidden', !isChecked);
             cesiumContainer2.classList.toggle('hidden', !isChecked);
             
-            // [수정] 중앙 정렬을 위해 레이아웃 클래스 동적 제어
             if(isChecked) {
                 globeWrapper.classList.remove('flex', 'justify-center', 'items-center');
                 globeWrapper.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2');
