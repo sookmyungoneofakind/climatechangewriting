@@ -125,9 +125,15 @@
         const currentYear = new Date().getFullYear();
         const LAYERS = {
           'MODIS_Terra_CorrectedReflectance_TrueColor': { name: '위성 사진 (True Color)', min: 2003, max: 2023 },
-          // [수정] 해빙 데이터의 최대 연도를 현재 연도로 동적 설정
           'AMSR2_Sea_Ice_Concentration_12km': { name: '해빙 농도', min: 2012, max: currentYear }
         };
+
+        // [추가] 카메라 뷰 위치 정의
+        const CAMERA_VIEWS = {
+            'global': { destination: Cesium.Cartesian3.fromDegrees(100, 0, 20000000) }, // 일반적인 지구 뷰
+            'arctic': { destination: Cesium.Cartesian3.fromDegrees(0, 70, 10000000) } // 북극 뷰
+        };
+        
         const TARGET_DATE = '09-15'; 
         const BASE_URL = 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi';
 
@@ -146,6 +152,7 @@
         const savePdfBtn = document.getElementById('save-pdf-btn');
         const loader = globeWrapper.querySelector('.loader');
         const layerSelector = document.getElementById('layer-selector');
+        const writingArea = document.getElementById('writing-area');
 
         function toggleLoading(show) { loader.classList.toggle('hidden', !show); }
         
@@ -207,25 +214,49 @@
                 slider.min = selectedLayer.min;
                 slider.max = selectedLayer.max;
                 if (slider.value < slider.min || slider.value > slider.max) {
-                    // [수정] 범위를 벗어날 경우, 안전한 최신 연도로 값 조정
                     slider.value = Math.min(selectedLayer.max, 2023);
                 }
                 labels[index].textContent = slider.value;
             });
         }
+        
+        // [추가] 선택된 데이터에 따라 카메라 뷰를 조정하는 함수
+        function setCameraView() {
+            const isArcticData = layerSelector.value === 'AMSR2_Sea_Ice_Concentration_12km';
+            const view = isArcticData ? CAMERA_VIEWS.arctic : CAMERA_VIEWS.global;
+            
+            [viewer1, viewer2].forEach(v => v.camera.flyTo(view));
+        }
+        
+        // [추가] 선택된 데이터에 따라 글쓰기 가이드 문구를 변경하는 함수
+        function updateWritingPlaceholder() {
+            const isArcticData = layerSelector.value === 'AMSR2_Sea_Ice_Concentration_12km';
+            if(isArcticData) {
+                writingArea.placeholder = `두 연도의 해빙 농도 지도를 비교하며 다음 질문에 대해 영어로 작성해보세요.
+
+- What do the different colors represent on the Arctic map? (북극 지도에 나타난 색은 무엇을 의미하나요?)
+- How has the sea ice changed between the two years? (두 연도 사이에 해빙 면적은 어떻게 변했나요?)
+- What are the potential consequences of melting sea ice? (해빙이 녹으면 어떤 영향이 있을까요?)`;
+            } else {
+                writingArea.placeholder = `두 연도의 위성 사진을 비교하며 다음 질문에 대해 영어로 작성해보세요.
+
+- What changes do you observe on the Earth's surface? (지구 표면에서 어떤 변화를 관찰할 수 있나요?)
+- Can you spot any differences in deserts, forests, or clouds? (사막, 숲, 구름 등에서 차이점을 찾을 수 있나요?)
+- What could be the reasons for these changes? (이러한 변화의 원인은 무엇일까요?)`;
+            }
+        }
+
 
         function initializeApp() {
             viewer1 = createViewer('cesium-container-1');
             viewer2 = createViewer('cesium-container-2');
-            
-            const initialPosition = Cesium.Cartesian3.fromDegrees(0, 70, 10000000);
-            viewer1.camera.setView({ destination: initialPosition });
-            viewer2.camera.setView({ destination: initialPosition });
 
             syncCameras(viewer1, viewer2);
             syncCameras(viewer2, viewer1);
             
             updateSliderRanges();
+            updateWritingPlaceholder();
+            setCameraView(); // 초기 카메라 위치 설정
             updateGlobes();
         }
 
@@ -237,6 +268,8 @@
 
         layerSelector.addEventListener('change', () => {
             updateSliderRanges();
+            updateWritingPlaceholder(); // [추가] 플레이스홀더 업데이트
+            setCameraView(); // [추가] 카메라 뷰 변경
             updateGlobes();
         });
 
