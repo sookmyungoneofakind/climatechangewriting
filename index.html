@@ -60,34 +60,34 @@
             <!-- 연도 선택 1 -->
             <div class="w-full md:w-2/5">
                 <label for="year-slider-1" class="block text-center font-semibold text-gray-700">
-                    기준 연도: <span id="year-label-1" class="font-bold text-blue-600 text-lg">2012</span>
+                    기준 연도: <span id="year-label-1" class="font-bold text-blue-600 text-lg">2014</span>
                 </label>
-                <input id="year-slider-1" type="range" min="2012" max="2024" value="2012" class="w-full mt-2">
+                <input id="year-slider-1" type="range" min="2012" class="w-full mt-2">
             </div>
             
             <div class="flex items-center justify-center">
                 <label for="compare-toggle" class="mr-2 font-semibold text-gray-700">비교 모드</label>
-                <input type="checkbox" id="compare-toggle" class="h-6 w-6 rounded text-blue-600 focus:ring-blue-500">
+                <input type="checkbox" id="compare-toggle" class="h-6 w-6 rounded text-blue-600 focus:ring-blue-500" checked>
             </div>
 
             <!-- 연도 선택 2 (비교 모드) -->
-            <div id="year-selector-2" class="w-full md:w-2/5 hidden">
+            <div id="year-selector-2" class="w-full md:w-2/5">
                 <label for="year-slider-2" class="block text-center font-semibold text-gray-700">
-                    비교 연도: <span id="year-label-2" class="font-bold text-red-600 text-lg">2023</span>
+                    비교 연도: <span id="year-label-2" class="font-bold text-red-600 text-lg">2024</span>
                 </label>
-                <input id="year-slider-2" type="range" min="2012" max="2024" value="2023" class="w-full mt-2">
+                <input id="year-slider-2" type="range" min="2012" class="w-full mt-2">
             </div>
         </div>
 
-        <!-- [수정] 지도 및 범례를 감싸는 새로운 메인 컨테이너 -->
+        <!-- 지도 및 범례를 감싸는 메인 컨테이너 -->
         <div class="flex flex-col items-center gap-6">
             <!-- 2D 지도 표시 영역 -->
             <div id="map-container-wrapper" class="w-full grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-200 rounded-lg p-2 relative min-h-[300px] md:min-h-[512px]">
                  <div id="map-container-1" class="w-full h-full flex justify-center items-center bg-black rounded-md"><div class="loader"></div></div>
-                 <div id="map-container-2" class="w-full h-full hidden justify-center items-center bg-black rounded-md"><div class="loader"></div></div>
+                 <div id="map-container-2" class="w-full h-full flex justify-center items-center bg-black rounded-md"><div class="loader"></div></div>
             </div>
 
-            <!-- [수정] 범례 (Legend) - 지도 아래로 이동 및 디자인 개선 -->
+            <!-- 범례 (Legend) -->
             <div class="w-full max-w-2xl bg-gray-50 p-4 rounded-lg shadow-inner">
                 <h3 class="font-bold text-center mb-3">해빙 농도 (%)</h3>
                 <div class="flex items-center gap-4 px-2">
@@ -121,9 +121,16 @@
         const currentYear = currentFullDate.getFullYear();
         const targetDateStr = '09-15';
 
+        // [수정] 데이터가 존재하는 가장 최신 연도를 더 안전하게 계산합니다.
         let maxYear = currentYear;
         const targetDateForCurrentYear = new Date(`${currentYear}-${targetDateStr}`);
-        if (currentFullDate < targetDateForCurrentYear.setDate(targetDateForCurrentYear.getDate() + 2)) {
+        
+        // 오늘 날짜가 목표 날짜(9월 15일)보다 이전이라면, 아직 올해 데이터가 없다고 간주합니다.
+        // NASA 데이터 처리 지연을 고려해 5일의 여유를 둡니다.
+        const bufferDate = new Date(targetDateForCurrentYear);
+        bufferDate.setDate(bufferDate.getDate() + 5);
+
+        if (currentFullDate < bufferDate) {
             maxYear = currentYear - 1;
         }
 
@@ -143,18 +150,8 @@
         const mapWrapper = document.getElementById('map-container-wrapper');
 
         function toggleLoading(container, show) {
-            const loader = container.querySelector('.loader');
             if (show) {
-                if (!loader) {
-                    const newLoader = document.createElement('div');
-                    newLoader.className = 'loader';
-                    container.innerHTML = '';
-                    container.appendChild(newLoader);
-                }
-            } else {
-                if (loader) {
-                    loader.remove();
-                }
+                container.innerHTML = '<div class="loader"></div>';
             }
         }
 
@@ -185,17 +182,26 @@
             }
         }
         
-        function updateSliderRanges() {
+        function setupControls() {
+            // 슬라이더의 min/max 값 설정
             [yearSlider1, yearSlider2].forEach(slider => {
+                slider.min = 2012;
                 slider.max = maxYear;
-                if (slider.value > maxYear) slider.value = maxYear;
             });
-            yearLabel1.textContent = yearSlider1.value;
-            yearLabel2.textContent = yearSlider2.value;
+            
+            // [수정] 데이터가 확실히 있는 연도로 기본값을 설정
+            const defaultYear2 = maxYear;
+            const defaultYear1 = Math.max(2012, maxYear - 10);
+
+            yearSlider1.value = defaultYear1;
+            yearLabel1.textContent = defaultYear1;
+            
+            yearSlider2.value = defaultYear2;
+            yearLabel2.textContent = defaultYear2;
         }
 
         function initializeApp() {
-            updateSliderRanges();
+            setupControls();
             updateAllMaps();
         }
 
@@ -209,14 +215,21 @@
             const isChecked = compareToggle.checked;
             yearSelector2.classList.toggle('hidden', !isChecked);
             mapContainer2.classList.toggle('hidden', !isChecked);
-            mapContainer2.classList.toggle('flex', isChecked);
-            mapWrapper.classList.toggle('md:grid-cols-2', isChecked);
-            mapWrapper.classList.toggle('md:grid-cols-1', !isChecked);
-
+            
             if (isChecked) {
+                mapWrapper.classList.add('md:grid-cols-2');
+                mapWrapper.classList.remove('md:grid-cols-1');
                 updateMapForYear(mapContainer2, yearSlider2.value);
+            } else {
+                mapWrapper.classList.remove('md:grid-cols-2');
+                mapWrapper.classList.add('md:grid-cols-1');
             }
         });
+
+        // 비교 모드가 기본으로 켜져 있도록 초기 상태 조정
+        compareToggle.checked = true;
+        yearSelector2.classList.remove('hidden');
+        mapContainer2.classList.remove('hidden');
 
         savePdfBtn.addEventListener('click', () => {
             const { jsPDF } = window.jspdf;
@@ -224,8 +237,6 @@
             const loaders = elementToCapture.querySelectorAll('.loader');
             loaders.forEach(loader => loader.style.display = 'none');
 
-            console.log('PDF creation started.');
-            
             html2canvas(elementToCapture, { scale: 2, useCORS: true, allowTaint: true })
             .then(canvas => {
                 const imgData = canvas.toDataURL('image/png');
