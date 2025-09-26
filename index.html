@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NASA GIBS 3D 교육용 지구 탐사기</title>
+    <title>NASA 3D 지구 데이터 통합 탐사기</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,23 +12,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- CesiumJS CDN: 3D 지구본을 위해 사용합니다. -->
+    <!-- CesiumJS CDN -->
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     
-    <!-- [수정] CesiumJS 라이브러리 스크립트가 로드되기 *전에* BASE_URL을 먼저 설정합니다. -->
-    <!-- 이 순서가 보장되어야 Worker 스크립트 로딩 오류가 발생하지 않습니다. -->
     <script>
+        // CesiumJS 라이브러리 스크립트가 로드되기 *전에* BASE_URL을 먼저 설정합니다.
         window.CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/';
     </script>
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Cesium.js"></script>
 
 
     <style>
-        /* 사용자 정의 스타일 */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
+        body { font-family: 'Inter', sans-serif; }
         .dot-button {
             border: 3px dotted black; background-color: #f1f5f9; font-weight: 600;
             padding: 0.5rem 1rem; transition: all 0.2s ease-in-out; border-radius: 8px;
@@ -42,7 +37,6 @@
             background-color: #cbd5e1; box-shadow: 1px 1px 0px black;
             transform: translate(2px, 2px);
         }
-        
         .loader {
             border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%;
             width: 60px; height: 60px; animation: spin 2s linear infinite;
@@ -50,7 +44,6 @@
             transform: translate(-50%, -50%);
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
         input[type=range] {
             -webkit-appearance: none; width: 100%; height: 10px; background: #d1d5db;
             outline: none; opacity: 0.7; transition: opacity .2s; border-radius: 5px;
@@ -63,7 +56,6 @@
         input[type=range]::-moz-range-thumb {
             width: 20px; height: 20px; background: #3b82f6; cursor: pointer; border-radius: 50%;
         }
-        /* Cesium UI 일부 숨기기 */
         .cesium-viewer-bottom, .cesium-viewer-toolbar { display: none !important; }
     </style>
 </head>
@@ -72,52 +64,56 @@
     <div id="app-container" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 bg-white my-10 rounded-xl shadow-lg">
 
         <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">NASA GIBS 3D 교육용 지구 탐사기</h1>
-            <p class="text-gray-600 mt-2">3D 지구본을 돌려보며 위성 이미지를 비교하고, 지구의 변화를 관찰해보세요.</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">NASA 3D 지구 데이터 통합 탐사기</h1>
+            <p class="text-gray-600 mt-2">관찰하고 싶은 데이터 종류를 선택하고, 지구의 변화를 탐색해보세요.</p>
         </header>
 
         <!-- 컨트롤 패널 -->
-        <div class="bg-gray-50 p-6 rounded-lg shadow-inner mb-8 flex flex-col md:flex-row gap-6 items-center justify-center">
+        <div class="bg-gray-50 p-6 rounded-lg shadow-inner mb-8 flex flex-col md:grid md:grid-cols-3 gap-6 items-center justify-center">
             <!-- 연도 선택 1 -->
-            <div class="w-full md:w-1/3">
+            <div class="w-full">
                 <label for="year-slider-1" class="block text-center font-semibold text-gray-700">
                     기준 연도: <span id="year-label-1" class="font-bold text-blue-600 text-lg">2012</span>
                 </label>
                 <input id="year-slider-1" type="range" min="2003" max="2023" value="2012" class="w-full mt-2">
             </div>
             
-            <div class="flex items-center justify-center">
-                <label for="compare-toggle" class="mr-2 font-semibold text-gray-700">비교 모드</label>
-                <input type="checkbox" id="compare-toggle" class="h-6 w-6 rounded text-blue-600 focus:ring-blue-500">
+            <!-- 중앙 컨트롤 -->
+            <div class="w-full flex flex-col items-center gap-4">
+                 <div>
+                    <label for="layer-selector" class="mr-2 font-semibold text-gray-700">데이터 종류</label>
+                    <select id="layer-selector" class="rounded border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                        <option value="MODIS_Terra_CorrectedReflectance_TrueColor">위성 사진 (True Color)</option>
+                        <option value="AMSR2_Sea_Ice_Concentration_12km">해빙 농도</option>
+                    </select>
+                </div>
+                <div class="flex items-center">
+                    <label for="compare-toggle" class="mr-2 font-semibold text-gray-700">비교 모드</label>
+                    <input type="checkbox" id="compare-toggle" class="h-6 w-6 rounded text-blue-600 focus:ring-blue-500">
+                </div>
             </div>
 
             <!-- 연도 선택 2 (비교 모드) -->
-            <div id="year-selector-2" class="w-full md:w-1/3 hidden">
+            <div id="year-selector-2" class="w-full hidden">
                 <label for="year-slider-2" class="block text-center font-semibold text-gray-700">
-                    비교 연도: <span id="year-label-2" class="font-bold text-red-600 text-lg">2022</span>
+                    비교 연도: <span id="year-label-2" class="font-bold text-red-600 text-lg">2023</span>
                 </label>
-                <input id="year-slider-2" type="range" min="2003" max="2023" value="2022" class="w-full mt-2">
+                <input id="year-slider-2" type="range" min="2003" max="2023" value="2023" class="w-full mt-2">
             </div>
         </div>
 
         <!-- 3D 지구본 표시 영역 -->
-        <div id="globe-container-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[450px] bg-gray-200 rounded-lg p-2 relative">
+        <div id="globe-container-wrapper" class="w-full min-h-[450px] bg-gray-200 rounded-lg p-2 relative flex justify-center items-center">
              <div id="cesium-container-1" class="w-full h-[400px] md:h-[500px] rounded-lg overflow-hidden relative"></div>
              <div id="cesium-container-2" class="w-full h-[400px] md:h-[500px] rounded-lg overflow-hidden relative hidden"></div>
-             <!-- 로딩 스피너가 여기에 표시됩니다 -->
+             <div class="loader hidden"></div>
         </div>
 
         <!-- 영어 글쓰기 영역 -->
         <div class="mt-8">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">✍️ English Writing Practice</h2>
             <textarea id="writing-area" class="w-full h-64 p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" 
-                      placeholder="다음 질문에 대해 자유롭게 영어로 작성해보세요.
-
-- Describe what you see on the globe(s). (지구본에서 무엇이 보이나요?)
-- Compare the two globes if you are in comparison mode. (두 지구본을 비교해보세요.)
-- Explain the possible cause and effect. (변화의 원인과 결과는 무엇일까요?)
-- Suggest a solution or share your thoughts. (해결책이나 당신의 생각을 제안해보세요.)"
-            ></textarea>
+                      placeholder="화면에 보이는 지구의 변화를 관찰하고, 자유롭게 영어로 작성해보세요."></textarea>
         </div>
 
         <div class="text-center mt-8">
@@ -126,16 +122,16 @@
     </div>
 
     <script>
-        // 전역 변수 설정
-        const LAYER_NAME = 'MODIS_Terra_CorrectedReflectance_TrueColor';
+        const LAYERS = {
+          'MODIS_Terra_CorrectedReflectance_TrueColor': { name: '위성 사진 (True Color)', min: 2003, max: 2023 },
+          'AMSR2_Sea_Ice_Concentration_12km': { name: '해빙 농도', min: 2012, max: 2024 }
+        };
         const TARGET_DATE = '09-15'; 
         const BASE_URL = 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi';
 
-        let viewer1, viewer2;
-        let layer1, layer2;
-        let isSyncing = false; // 카메라 동기화 재귀 호출 방지 플래그
+        let viewer1, viewer2, layer1, layer2;
+        let isSyncing = false;
 
-        // DOM 요소 가져오기
         const yearSlider1 = document.getElementById('year-slider-1');
         const yearLabel1 = document.getElementById('year-label-1');
         const yearSlider2 = document.getElementById('year-slider-2');
@@ -143,73 +139,32 @@
         const compareToggle = document.getElementById('compare-toggle');
         const yearSelector2 = document.getElementById('year-selector-2');
         const globeWrapper = document.getElementById('globe-container-wrapper');
+        const cesiumContainer1 = document.getElementById('cesium-container-1');
         const cesiumContainer2 = document.getElementById('cesium-container-2');
         const savePdfBtn = document.getElementById('save-pdf-btn');
+        const loader = globeWrapper.querySelector('.loader');
+        const layerSelector = document.getElementById('layer-selector');
 
-        /**
-         * 로딩 인디케이터를 표시/숨김
-         */
-        function toggleLoading(show) {
-            const existingLoader = globeWrapper.querySelector('.loader');
-            if (existingLoader) existingLoader.remove();
-            if (show) {
-                const loader = document.createElement('div');
-                loader.className = 'loader';
-                globeWrapper.appendChild(loader);
-            }
-        }
+        function toggleLoading(show) { loader.classList.toggle('hidden', !show); }
         
-        /**
-         * Cesium Viewer(3D 지구본)를 초기화하는 함수
-         * @param {string} containerId - Viewer를 담을 div의 ID
-         * @returns {Cesium.Viewer} - 생성된 Viewer 인스턴스
-         */
         function createViewer(containerId) {
             return new Cesium.Viewer(containerId, {
-                imageryProvider: new Cesium.TileMapServiceImageryProvider({
-                    url: Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII"),
-                }),
-                baseLayerPicker: false,
-                // UI 간소화
-                animation: false,
-                timeline: false,
-                homeButton: true,
-                geocoder: false,
-                sceneModePicker: false,
-                navigationHelpButton: false,
-                // PDF 저장을 위해 WebGL 컨텍스트 설정
-                contextOptions: {
-                    webgl: {
-                        preserveDrawingBuffer: true
-                    }
-                }
+                imageryProvider: new Cesium.TileMapServiceImageryProvider({ url: Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII") }),
+                baseLayerPicker: false, animation: false, timeline: false, homeButton: true,
+                geocoder: false, sceneModePicker: false, navigationHelpButton: false,
+                contextOptions: { webgl: { preserveDrawingBuffer: true } }
             });
         }
 
-        /**
-         * 지정된 연도의 위성 이미지 레이어를 Viewer에 업데이트하는 함수
-         */
-        function updateLayerForYear(viewer, year, currentLayer) {
-            if (currentLayer) {
-                viewer.imageryLayers.remove(currentLayer);
-            }
-
+        function updateLayerForYear(viewer, year, currentLayer, layerName) {
+            if (currentLayer) viewer.imageryLayers.remove(currentLayer);
             const provider = new Cesium.WebMapServiceImageryProvider({
-                url: BASE_URL,
-                layers: LAYER_NAME,
-                parameters: {
-                    transparent: 'true',
-                    format: 'image/png',
-                    time: `${year}-${TARGET_DATE}`
-                }
+                url: BASE_URL, layers: layerName,
+                parameters: { transparent: 'true', format: 'image/png', time: `${year}-${TARGET_DATE}` }
             });
-
             return viewer.imageryLayers.addImageryProvider(provider);
         }
         
-        /**
-         * 카메라 뷰를 동기화하는 함수
-         */
         function syncCameras(sourceViewer, targetViewer) {
             sourceViewer.camera.changed.addEventListener(() => {
                 if (isSyncing) return;
@@ -217,114 +172,108 @@
                 targetViewer.camera.setView({
                     destination: sourceViewer.camera.position,
                     orientation: {
-                        heading: sourceViewer.camera.heading,
-                        pitch: sourceViewer.camera.pitch,
-                        roll: sourceViewer.camera.roll
+                        heading: sourceViewer.camera.heading, pitch: sourceViewer.camera.pitch, roll: sourceViewer.camera.roll
                     }
                 });
                 isSyncing = false;
             });
         }
         
-        /**
-         * 화면의 지구본들을 업데이트하는 메인 함수
-         */
         async function updateGlobes() {
             toggleLoading(true);
-            
             const loadPromises = [];
-
-            const year1 = yearSlider1.value;
-            layer1 = updateLayerForYear(viewer1, year1, layer1);
+            const layerName = layerSelector.value;
+            
+            layer1 = updateLayerForYear(viewer1, yearSlider1.value, layer1, layerName);
             loadPromises.push(layer1.readyPromise);
 
             if (compareToggle.checked) {
-                const year2 = yearSlider2.value;
-                layer2 = updateLayerForYear(viewer2, year2, layer2);
+                layer2 = updateLayerForYear(viewer2, yearSlider2.value, layer2, layerName);
                 loadPromises.push(layer2.readyPromise);
             }
+            try { await Promise.all(loadPromises); } 
+            catch (error) { console.error("Layer loading error:", error); } 
+            finally { toggleLoading(false); }
+        }
+        
+        function updateSliderRanges() {
+            const selectedLayer = LAYERS[layerSelector.value];
+            const sliders = [yearSlider1, yearSlider2];
+            const labels = [yearLabel1, yearLabel2];
             
-            try {
-                await Promise.all(loadPromises);
-            } catch (error) {
-                console.error("레이어 로딩 중 오류 발생:", error);
-            } finally {
-                toggleLoading(false);
-            }
+            sliders.forEach((slider, index) => {
+                slider.min = selectedLayer.min;
+                slider.max = selectedLayer.max;
+                // 현재 값이 범위를 벗어나면 조정
+                slider.value = Math.max(selectedLayer.min, Math.min(selectedLayer.max, slider.value));
+                labels[index].textContent = slider.value;
+            });
         }
 
-        /**
-         * 앱 초기화 함수
-         */
         function initializeApp() {
             viewer1 = createViewer('cesium-container-1');
             viewer2 = createViewer('cesium-container-2');
             
-            // 초기 카메라 위치를 북극으로 설정
             const initialPosition = Cesium.Cartesian3.fromDegrees(0, 70, 10000000);
             viewer1.camera.setView({ destination: initialPosition });
             viewer2.camera.setView({ destination: initialPosition });
 
-            // 카메라 동기화 설정
             syncCameras(viewer1, viewer2);
             syncCameras(viewer2, viewer1);
-
+            
+            updateSliderRanges();
             updateGlobes();
         }
 
-
-        // 이벤트 리스너 설정
         yearSlider1.addEventListener('input', e => yearLabel1.textContent = e.target.value);
         yearSlider1.addEventListener('change', updateGlobes);
 
         yearSlider2.addEventListener('input', e => yearLabel2.textContent = e.target.value);
         yearSlider2.addEventListener('change', updateGlobes);
 
+        layerSelector.addEventListener('change', () => {
+            updateSliderRanges();
+            updateGlobes();
+        });
+
         compareToggle.addEventListener('change', () => {
             const isChecked = compareToggle.checked;
             yearSelector2.classList.toggle('hidden', !isChecked);
             cesiumContainer2.classList.toggle('hidden', !isChecked);
-            globeWrapper.classList.toggle('md:grid-cols-2', isChecked);
-            globeWrapper.classList.toggle('md:grid-cols-1', !isChecked);
             
-            if (isChecked) {
-                updateGlobes();
-            } else if (!isChecked && layer2) {
-                viewer2.imageryLayers.remove(layer2);
-                layer2 = null;
+            // [수정] 중앙 정렬을 위해 레이아웃 클래스 동적 제어
+            if(isChecked) {
+                globeWrapper.classList.remove('flex', 'justify-center', 'items-center');
+                globeWrapper.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2');
+            } else {
+                globeWrapper.classList.remove('grid', 'grid-cols-1', 'md:grid-cols-2');
+                globeWrapper.classList.add('flex', 'justify-center', 'items-center');
+                if (layer2) {
+                    viewer2.imageryLayers.remove(layer2);
+                    layer2 = null;
+                }
             }
+            if (isChecked) updateGlobes();
         });
 
         savePdfBtn.addEventListener('click', () => {
             const { jsPDF } = window.jspdf;
             const elementToCapture = document.getElementById('app-container');
-            
-            // [수정] 불필요한 alert 제거
-            console.log('PDF 생성을 시작합니다.');
-            toggleLoading(true); // PDF 생성 중 로딩 표시
-
-            html2canvas(elementToCapture, {
-                scale: 2, 
-                useCORS: true,
-                allowTaint: true 
-            }).then(canvas => {
+            console.log('PDF creation started.');
+            toggleLoading(true);
+            html2canvas(elementToCapture, { scale: 2, useCORS: true, allowTaint: true })
+            .then(canvas => {
                 const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF({
-                    orientation: 'portrait', unit: 'px',
-                    format: [canvas.width, canvas.height]
-                });
-                
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
                 pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
                 pdf.save(`nasa-3d-report-${new Date().toISOString().slice(0,10)}.pdf`);
             }).catch(err => {
-                console.error("PDF 생성 오류:", err);
-                // [수정] 불필요한 alert 제거
+                console.error("PDF creation error:", err);
             }).finally(() => {
-                toggleLoading(false); // PDF 생성 완료 후 로딩 숨김
+                toggleLoading(false);
             });
         });
 
-        // 페이지 로드 시 앱 초기화
         window.addEventListener('load', initializeApp);
     </script>
 </body>
